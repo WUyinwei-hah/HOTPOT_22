@@ -36,7 +36,8 @@ def generate_launch_description():
     lifecycle_nodes = ['map_saver']
 
     # Getting directories and launch-files
-    bringup_dir = get_package_share_directory('nav2_bringup')
+    
+    # bringup_dir = get_package_share_directory('nav2_bringup')
     slam_toolbox_dir = get_package_share_directory('slam_toolbox')
     rmua19_ignition_simulator_dir = get_package_share_directory('rmua19_ignition_simulator')
     laser_filters_dir = get_package_share_directory('laser_filters')
@@ -45,7 +46,9 @@ def generate_launch_description():
     filter_launch_file = os.path.join(laser_filters_dir, 'launch', 'box_filter.launch.py')
     param_dir = get_package_share_directory('build_map')
     slam_param_file = os.path.join(param_dir, 'slam_param.yaml')
+    nav2_config_path = os.path.join(param_dir, 'navigation_ua.yaml')
     rviz_config_file = os.path.join(param_dir, 'config.rviz')
+    nav2_launch_path = os.path.join(param_dir, 'ua_navigation.launch.py')
 
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
@@ -112,6 +115,11 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': use_sim_time,
                           'slam_params_file': slam_param_file}.items())
                           
+    navigation2_cmd_with_params = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(nav2_launch_path),
+        launch_arguments={'use_sim_time': use_sim_time,
+                          'params_file': nav2_config_path}.items())
+                          
     start_simulator = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(simu_launch_file)
         )
@@ -120,11 +128,6 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(filter_launch_file)
         )
                        
-    odom_to_base = Node(
-            package='build_map',
-            executable='odom_to_base',
-            name='odom_to_base')
-        
        
     tf1 = Node(package = "tf2_ros", 
             executable = "static_transform_publisher",
@@ -147,17 +150,6 @@ def generate_launch_description():
             arguments=['0.', '0.', '0.0', '0.0', '0.0', '0.0', 'red_standard_robot1/chassis', 'base_link'],
         )
         
-    tf5 = Node(package = "tf2_ros", 
-            executable = "static_transform_publisher",
-            name = "static_transform_publisher2",
-            arguments=['0.15', '0.', '-0.03', '0.0', '3.14', '0.0', 'base_link', 'test1'],
-        )
-    
-    tf6 = Node(package = "tf2_ros", 
-            executable = "static_transform_publisher",
-            name = "static_transform_publisher2",
-            arguments=['0.15', '0.', '-0.03', '0', '0.0', '3.14', 'base_link', 'test2'],
-        )
      
     start_rviz_cmd = Node(
 	    package='rviz2',
@@ -182,12 +174,12 @@ def generate_launch_description():
     ld.add_action(tf2)
     # ld.add_action(tf3)
     ld.add_action(tf4)
-    # ld.add_action(odom_to_base)
 
     ld.add_action(robot_localization_node)
     ld.add_action(start_slam_toolbox_cmd_with_params)
     ld.add_action(start_simulator)
     ld.add_action(start_filter)
+    ld.add_action(navigation2_cmd_with_params)
     ld.add_action(start_rviz_cmd)
 
     
